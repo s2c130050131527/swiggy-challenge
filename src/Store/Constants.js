@@ -1,2 +1,1 @@
-export const ADD_FAVOURITE = "ADD_FAVOURITE";
-export const REMOVE_FAVORITE = "REMOVE_FAVORITE";
+export const SET_TOKEN = "SET_TOKEN";

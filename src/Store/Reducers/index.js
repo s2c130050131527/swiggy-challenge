@@ -1,8 +1,8 @@
 import { combineReducers } from "redux";
-import favourites from "./favourites";
+import tokenReducer from "./token";
 
 const appReducer = combineReducers({
-  favourites
+  token: tokenReducer
 });
 
 export default appReducer;
