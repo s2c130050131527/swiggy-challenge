@@ -1,0 +1,14 @@
+.Home {
+  .category {
+    display: flex;
+    align-items: flex-end;
+    flex-direction: column;
+    .text {
+      color: #afafaf;
+    }
+  }
+  .card-container {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
