@@ -75,6 +75,9 @@ const AddTaskCard = ({ handleClose, open }) => {
     data: tagData,
     refetch: tagRefetch
   } = useQuery(GET_TAGS);
+  if (data) {
+    handleClose();
+  }
   const [selectVal, setSelectVal] = useState([]);
   const createOption = label => ({
     label,
@@ -124,8 +127,8 @@ const AddTaskCard = ({ handleClose, open }) => {
                   })
                 }
               }
-            }
-            // refetchQueries: ["GetTasks"]
+            },
+            refetchQueries: ["GetTasks"]
           });
         }}
       >
@@ -208,7 +211,7 @@ const AddTaskCard = ({ handleClose, open }) => {
           >
             Cancel
           </Button>
-          <Button color="primary" fullWidth type="submit">
+          <Button color="primary" fullWidth type="submit" loading={loading}>
             Save Task
           </Button>
         </DialogActions>

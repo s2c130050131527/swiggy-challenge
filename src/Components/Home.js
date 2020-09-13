@@ -128,7 +128,27 @@ const Home = () => {
         <Grid container item className={classes.horizontalScr}>
           <Grid container item className={classes.cardsRoot} wrap="nowrap">
             {pending.map(el => (
-              <TaskCard data={el} pending />
+              <TaskCard key={el.id} data={el} pending />
+            ))}
+          </Grid>
+        </Grid>
+        <Grid container item className={classes.pendingRoot}>
+          <Typography variant="h5">Work In-Progress</Typography>
+        </Grid>
+        <Grid container item className={classes.horizontalScr}>
+          <Grid container item className={classes.cardsRoot} wrap="nowrap">
+            {onGoing.map(el => (
+              <TaskCard key={el.id} data={el} onGoing />
+            ))}
+          </Grid>
+        </Grid>
+        <Grid container item className={classes.pendingRoot}>
+          <Typography variant="h5">Completed</Typography>
+        </Grid>
+        <Grid container item className={classes.horizontalScr}>
+          <Grid container item className={classes.cardsRoot} wrap="nowrap">
+            {complete.map(el => (
+              <TaskCard key={el.id} data={el} complete />
             ))}
           </Grid>
         </Grid>
