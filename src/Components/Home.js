@@ -8,7 +8,7 @@ import Button from "@material-ui/core/Button";
 import { gql, useQuery } from "@apollo/client";
 import CircularProgress from "@material-ui/core/CircularProgress";
 
-const GET_TASK = gql`
+export const GET_TASK = gql`
   query GetTasks {
     tasks {
       created_at

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import TextField from "@material-ui/core/TextField";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import Grid from "@material-ui/core/Grid";
@@ -8,21 +8,49 @@ import Dialog from "@material-ui/core/Dialog";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogActions from "@material-ui/core/DialogActions";
-
 import CircularProgress from "@material-ui/core/CircularProgress";
 import CreatableSelect from "react-select/creatable";
 import Chip from "@material-ui/core/Chip";
 import Typography from "@material-ui/core/Typography";
 
-const ADD_TASK = gql`
-  mutation AddTaskOne($type: tasks_insert_input!) {
-    insert_tasks_one(object: $type) {
+const UPDATE_TASK = gql`
+  mutation UpdateTasks($type: tasks_set_input, $id: tasks_pk_columns_input!) {
+    update_tasks_by_pk(_set: $type, pk_columns: $id) {
       created_at
       end_time
       id
       start_time
+      tags {
+        id
+        name
+      }
+
       title
       updated_at
+      user {
+        name
+      }
+    }
+  }
+`;
+
+const DELETE_TASK_TAG = gql`
+  mutation DeleteTaskTag($tag: Int!, $task: Int!) {
+    delete_task_tag_by_pk(tag_id: $tag, task_id: $task) {
+      tag_id
+      task_id
+    }
+  }
+`;
+const INSERT_TASK_TAG = gql`
+  mutation InsertTaskTag($type: task_tag_insert_input!) {
+    insert_task_tag_one(object: $type) {
+      tag_id
+      tag {
+        name
+        id
+      }
+      task_id
     }
   }
 `;
@@ -61,16 +89,38 @@ const useStyles = makeStyles({
   }
 });
 
-const AddTaskCard = ({ handleClose, open }) => {
+const EditTaskCard = ({
+  handleClose,
+  title: titleOriginal,
+  desc: description,
+  tags,
+  id
+}) => {
+  console.log(tags);
   const classes = useStyles();
-  const [title, setTitle] = useState("");
-  const [desc, setDesc] = useState("");
+  const [title, setTitle] = useState(titleOriginal);
+  const [desc, setDesc] = useState(description);
   const [titleErr, setTitleErr] = useState(false);
-  const [addTask, { data, loading }] = useMutation(ADD_TASK);
+  const [updateTask, { data, loading }] = useMutation(UPDATE_TASK);
+  const [deleteTaskTag, deleteTagData] = useMutation(DELETE_TASK_TAG);
+  const [insertTaskTag, insertTagData] = useMutation(INSERT_TASK_TAG);
+
   const [
     addTag,
     { data: createdTagData, loading: addTagLoading }
   ] = useMutation(CREATE_TAG);
+  useEffect(() => {
+    if (!addTagLoading && createdTagData) {
+      insertTaskTag({
+        variables: {
+          type: {
+            tag_id: createdTagData.insert_tags_one.id,
+            task_id: id
+          }
+        }
+      });
+    }
+  }, [createdTagData]);
   const {
     loading: tagLoading,
     error,
@@ -80,14 +130,29 @@ const AddTaskCard = ({ handleClose, open }) => {
   if (data) {
     handleClose();
   }
-  const [selectVal, setSelectVal] = useState([]);
   const createOption = label => ({
     label,
     value: label.toLowerCase().replace(/\W/g, "")
   });
+  const [selectVal, setSelectVal] = useState(
+    tags.map(tag => createOption(tag.name))
+  );
   const handleChange = newValue => {
     const newValues = [...selectVal];
     newValues.push(newValue);
+    const tag = tagData.tags.find(
+      el1 => el1.name.toLowerCase().replace(/\W/g, "") === newValue.value
+    );
+    if (tag) {
+      insertTaskTag({
+        variables: {
+          type: {
+            tag_id: tag.id,
+            task_id: id
+          }
+        }
+      });
+    }
     setSelectVal(newValues);
   };
   const handleCreate = inputValue => {
@@ -102,34 +167,27 @@ const AddTaskCard = ({ handleClose, open }) => {
     });
     const newValues = [...selectVal];
     newValues.push(newOption);
+
     setSelectVal(newValues);
   };
   return (
-    <Dialog open={open} maxWidth="sm" onEscapeKeyDown={handleChange}>
+    <Dialog open maxWidth="sm" onEscapeKeyDown={handleChange}>
       <form
         onSubmit={e => {
           e.preventDefault();
-
           if (!title) {
             setTitleErr(true);
             return;
           }
-          addTask({
+          updateTask({
             variables: {
               type: {
-                title: `${title}$$$###***${desc}`,
-                task_tags: {
-                  data: selectVal.map(el => {
-                    const tag = tagData.tags.find(
-                      el1 =>
-                        el1.name.toLowerCase().replace(/\W/g, "") === el.value
-                    );
-                    return { tag_id: tag.id };
-                  })
-                }
+                title: `${title}$$$###***${desc}`
+              },
+              id: {
+                id
               }
-            },
-            refetchQueries: ["GetTasks"]
+            }
           });
         }}
       >
@@ -148,7 +206,7 @@ const AddTaskCard = ({ handleClose, open }) => {
             }}
             margin="dense"
             id="title"
-            label="Add a title"
+            label="Edit title"
             type="text"
             fullWidth
             error={titleErr}
@@ -161,15 +219,15 @@ const AddTaskCard = ({ handleClose, open }) => {
             id="desc"
             multiline
             rows={3}
-            label="Add a description (optional)"
-            type="textarea"
+            label="Edit description"
+            type="text"
             fullWidth
           />
           <Typography variant="subtitle2">Select Tags</Typography>
           <CreatableSelect
-            isDisabled={tagLoading}
+            isDisabled={tagLoading || addTagLoading}
             maxMenuHeight={100}
-            isLoading={tagLoading}
+            isLoading={tagLoading || addTagLoading}
             placeholder="Select Tags"
             onChange={handleChange}
             classNamePrefix="create-select"
@@ -193,6 +251,16 @@ const AddTaskCard = ({ handleClose, open }) => {
                 key={el.value}
                 label={el.label}
                 onDelete={() => {
+                  const tag = tags.find(
+                    el1 =>
+                      el1.name.toLowerCase().replace(/\W/g, "") === el.value
+                  );
+                  deleteTaskTag({
+                    variables: {
+                      tag: tag.id,
+                      task: id
+                    }
+                  });
                   const newSelectVal = [...selectVal];
                   newSelectVal.splice(index, 1);
                   setSelectVal(newSelectVal);
@@ -213,7 +281,7 @@ const AddTaskCard = ({ handleClose, open }) => {
             Cancel
           </Button>
           <Button color="primary" fullWidth type="submit" disabled={loading}>
-            {loading ? <CircularProgress size={25} /> : "Save Task"}
+            {loading ? <CircularProgress size={25} /> : "Update Task"}
           </Button>
         </DialogActions>
       </form>
@@ -221,4 +289,4 @@ const AddTaskCard = ({ handleClose, open }) => {
   );
 };
 
-export default AddTaskCard;
+export default EditTaskCard;

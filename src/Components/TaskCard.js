@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Grid from "@material-ui/core/Grid";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import Typography from "@material-ui/core/Typography";
+import EditTaskCard from "./EditTaskCard";
 import Button from "@material-ui/core/Button";
 import Chip from "@material-ui/core/Chip";
 import Card from "@material-ui/core/Card";
@@ -12,6 +13,8 @@ import { gql, useMutation } from "@apollo/client";
 import IconButton from "@material-ui/core/IconButton";
 import EditIcon from "@material-ui/icons/Edit";
 import DeleteIcon from "@material-ui/icons/Delete";
+import CircularProgress from "@material-ui/core/CircularProgress";
+import { GET_TASK } from "./Home";
 
 const UPDATE_TASK = gql`
   mutation UpdateTask($change: tasks_set_input, $id: tasks_pk_columns_input!) {
@@ -33,9 +36,16 @@ const UPDATE_TASK = gql`
   }
 `;
 
+const DELETE_TASK = gql`
+  mutation DeleteTasks($id: Int!) {
+    delete_tasks_by_pk(id: $id) {
+      id
+    }
+  }
+`;
 const useStyles = makeStyles({
   taskCardRoot: {
-    width: "295px",
+    width: "350px",
     margin: "10px 15px 10px 0px",
     position: "relative"
   },
@@ -53,6 +63,9 @@ const TaskCard = ({ data, pending, onGoing, complete }) => {
   const classes = useStyles();
   const [updateTask, { loading: updateLoading }] = useMutation(UPDATE_TASK);
   const [timeElapsed, setTimeElapsed] = useState(0);
+  const [editTask, setEditTask] = useState(false);
+  const [deleteTask, deleteTaskData] = useMutation(DELETE_TASK);
+  const handleEditClose = () => setEditTask(false);
   useEffect(() => {
     if (onGoing) {
       setInterval(() => {
@@ -106,17 +119,53 @@ const TaskCard = ({ data, pending, onGoing, complete }) => {
       }
     });
   };
+  const handleDelete = () => {
+    deleteTask({
+      variables: {
+        id: data.id
+      },
+      update: cache => {
+        const existingTasks = cache.readQuery({ query: GET_TASK });
+        const newTasks = existingTasks.tasks.filter(t => t.id !== data.id);
+        cache.writeQuery({
+          query: GET_TASK,
+          data: { tasks: newTasks }
+        });
+      }
+    });
+  };
   return (
     <Card className={classes.taskCardRoot}>
+      {editTask && (
+        <EditTaskCard
+          id={data.id}
+          title={titleSplit[0]}
+          desc={titleSplit[1]}
+          tags={data.tags}
+          handleClose={handleEditClose}
+        />
+      )}
       <CardHeader
         title={titleSplit[0]}
         action={
           <>
-            <IconButton color="primary" title="Edit Task">
+            <IconButton
+              color="primary"
+              title="Edit Task"
+              onClick={() => setEditTask(true)}
+            >
               <EditIcon />
             </IconButton>
-            <IconButton color="secondary" title="Delete Task">
-              <DeleteIcon />
+            <IconButton
+              color="secondary"
+              title="Delete Task"
+              onClick={handleDelete}
+            >
+              {deleteTaskData.loading ? (
+                <CircularProgress size={25} color="secondary" />
+              ) : (
+                <DeleteIcon />
+              )}
             </IconButton>
           </>
         }
@@ -141,13 +190,14 @@ const TaskCard = ({ data, pending, onGoing, complete }) => {
             </Typography>
             <Chip label={data.user.name} color="primary" size="small"></Chip>
           </Grid>
-          {data.tags.length > 1 && (
+          {data.tags.length >= 1 && (
             <Grid item className={classes.row}>
               <Typography variant="body1" color="primary">
                 Tags:
               </Typography>
               {data.tags.map(tag => (
                 <Chip
+                  key={tag.id}
                   label={tag.name}
                   color="primary"
                   size="small"
