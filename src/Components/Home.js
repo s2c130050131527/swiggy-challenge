@@ -7,6 +7,7 @@ import TaskCard from "./TaskCard";
 import Button from "@material-ui/core/Button";
 import { gql, useQuery } from "@apollo/client";
 import CircularProgress from "@material-ui/core/CircularProgress";
+import useMediaQuery from "@material-ui/core/useMediaQuery/useMediaQuery";
 
 export const GET_TASK = gql`
   query GetTasks {
@@ -29,7 +30,7 @@ export const GET_TASK = gql`
 
 const useStyles = makeStyles({
   homeRoot: {
-    padding: "2em 10em"
+    padding: match => (match ? "2em 10em" : "2em 0.5em")
   },
   pendingRoot: {
     paddingTop: "0.5em",
@@ -53,7 +54,8 @@ const useStyles = makeStyles({
 });
 
 const Home = () => {
-  const classes = useStyles();
+  const matches = useMediaQuery("(min-width: 960px)");
+  const classes = useStyles(matches);
   const [open, setOpen] = useState(false);
   const handleClose = () => setOpen(false);
   const { data, loading, error } = useQuery(GET_TASK);

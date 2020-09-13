@@ -11,18 +11,21 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import TextField from "@material-ui/core/TextField";
 import { useDispatch } from "react-redux";
 import { setTokenAction } from "../Store/Reducers/token";
+import useMediaQuery from "@material-ui/core/useMediaQuery/useMediaQuery";
 
 const useStyles = makeStyles({
   headerRoot: {
     height: "4em",
     backgroundColor: "#fff",
-    padding: "0.5em 10em",
+    padding: match => (match ? "0.5em 10em" : "0.5em"),
     boxShadow: "0px 3px 6px rgba(0,0,0,0.3)"
   }
 });
 
 const Header = () => {
-  const classes = useStyles();
+  const matches = useMediaQuery("(min-width: 960px)");
+
+  const classes = useStyles(matches);
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
