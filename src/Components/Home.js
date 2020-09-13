@@ -1,17 +1,19 @@
-import React, { useState, lazy, Suspense } from "react";
+import React, { useState, lazy, Suspense, useEffect } from "react";
 import Grid from "@material-ui/core/Grid";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import Typography from "@material-ui/core/Typography";
 import Button from "@material-ui/core/Button";
-import { gql, useQuery } from "@apollo/client";
+import { gql, useLazyQuery } from "@apollo/client";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import useMediaQuery from "@material-ui/core/useMediaQuery/useMediaQuery";
+import FilterTasks from "./FilterTasks";
 
 const TaskCard = lazy(() => import("./TaskCard"));
 const AddTaskCard = lazy(() => import("./AddTaskCard"));
+
 export const GET_TASK = gql`
-  query GetTasks {
-    tasks {
+  query GetTasks($order: [tasks_order_by!], $cond: tasks_bool_exp) {
+    tasks(order_by: $order, where: $cond) {
       created_at
       end_time
       id
@@ -21,6 +23,7 @@ export const GET_TASK = gql`
         id
       }
       title
+      updated_at
       user {
         name
       }
@@ -58,7 +61,14 @@ const Home = () => {
   const classes = useStyles(matches);
   const [open, setOpen] = useState(false);
   const handleClose = () => setOpen(false);
-  const { data, loading, error } = useQuery(GET_TASK);
+  const [getTasks, { data, loading, error }] = useLazyQuery(GET_TASK);
+  useEffect(() => {
+    getTasks({
+      variables: {
+        order: [{ created_at: "desc_nulls_first" }]
+      }
+    });
+  }, []);
   const pending = [];
   const onGoing = [];
   const complete = [];
@@ -74,19 +84,6 @@ const Home = () => {
     });
   }
 
-  if (loading) {
-    return (
-      <Grid
-        container
-        item
-        className={classes.loading}
-        justify="center"
-        alignContent="center"
-      >
-        <CircularProgress />
-      </Grid>
-    );
-  }
   if (error) {
     return (
       <Grid
@@ -111,53 +108,68 @@ const Home = () => {
   return (
     <Suspense fallback="">
       <Grid container item className={classes.homeRoot} direction="column">
-        <Grid container item justify="flex-end">
-          <Button size="large" color="primary" onClick={e => setOpen(true)}>
-            Add Task
-          </Button>
+        <Grid container item justify="space-between" wrap="nowrap">
+          <FilterTasks getTasks={getTasks} taskLoading={loading} />
+          <Grid item>
+            <Button size="large" color="primary" onClick={e => setOpen(true)}>
+              Add Task
+            </Button>
+          </Grid>
         </Grid>
         <Suspense fallback="">
           <AddTaskCard open={open} handleClose={handleClose} />
         </Suspense>
-        <Grid
-          container
-          item
-          direction="column"
-          style={{
-            height: "100%"
-          }}
-        >
-          <Grid container item className={classes.pendingRoot}>
-            <Typography variant="h5">Pending Tasks</Typography>
+        {loading ? (
+          <Grid
+            container
+            item
+            className={classes.loading}
+            justify="center"
+            alignContent="center"
+          >
+            <CircularProgress />
           </Grid>
-          <Grid container item className={classes.horizontalScr}>
-            <Grid container item className={classes.cardsRoot} wrap="nowrap">
-              {pending.map(el => (
-                <TaskCard key={el.id} data={el} pending />
-              ))}
+        ) : (
+          <Grid
+            container
+            item
+            direction="column"
+            style={{
+              height: "100%"
+            }}
+          >
+            <Grid container item className={classes.pendingRoot}>
+              <Typography variant="h5">Pending Tasks</Typography>
+            </Grid>
+            <Grid container item className={classes.horizontalScr}>
+              <Grid container item className={classes.cardsRoot} wrap="nowrap">
+                {pending.map(el => (
+                  <TaskCard key={el.id} data={el} pending />
+                ))}
+              </Grid>
+            </Grid>
+            <Grid container item className={classes.pendingRoot}>
+              <Typography variant="h5">Work In-Progress</Typography>
+            </Grid>
+            <Grid container item className={classes.horizontalScr}>
+              <Grid container item className={classes.cardsRoot} wrap="nowrap">
+                {onGoing.map(el => (
+                  <TaskCard key={el.id} data={el} onGoing />
+                ))}
+              </Grid>
+            </Grid>
+            <Grid container item className={classes.pendingRoot}>
+              <Typography variant="h5">Completed</Typography>
+            </Grid>
+            <Grid container item className={classes.horizontalScr}>
+              <Grid container item className={classes.cardsRoot} wrap="nowrap">
+                {complete.map(el => (
+                  <TaskCard key={el.id} data={el} complete />
+                ))}
+              </Grid>
             </Grid>
           </Grid>
-          <Grid container item className={classes.pendingRoot}>
-            <Typography variant="h5">Work In-Progress</Typography>
-          </Grid>
-          <Grid container item className={classes.horizontalScr}>
-            <Grid container item className={classes.cardsRoot} wrap="nowrap">
-              {onGoing.map(el => (
-                <TaskCard key={el.id} data={el} onGoing />
-              ))}
-            </Grid>
-          </Grid>
-          <Grid container item className={classes.pendingRoot}>
-            <Typography variant="h5">Completed</Typography>
-          </Grid>
-          <Grid container item className={classes.horizontalScr}>
-            <Grid container item className={classes.cardsRoot} wrap="nowrap">
-              {complete.map(el => (
-                <TaskCard key={el.id} data={el} complete />
-              ))}
-            </Grid>
-          </Grid>
-        </Grid>
+        )}
       </Grid>
     </Suspense>
   );
