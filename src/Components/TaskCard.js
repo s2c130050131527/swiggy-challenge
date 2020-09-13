@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, lazy, Suspense } from "react";
 import Grid from "@material-ui/core/Grid";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import Typography from "@material-ui/core/Typography";
-import EditTaskCard from "./EditTaskCard";
 import Button from "@material-ui/core/Button";
 import Chip from "@material-ui/core/Chip";
 import Card from "@material-ui/core/Card";
@@ -16,6 +15,7 @@ import DeleteIcon from "@material-ui/icons/Delete";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import { GET_TASK } from "./Home";
 
+const EditTaskCard = lazy(() => import("./EditTaskCard"));
 const UPDATE_TASK = gql`
   mutation UpdateTask($change: tasks_set_input, $id: tasks_pk_columns_input!) {
     update_tasks_by_pk(_set: $change, pk_columns: $id) {
@@ -136,15 +136,17 @@ const TaskCard = ({ data, pending, onGoing, complete }) => {
   };
   return (
     <Card className={classes.taskCardRoot}>
-      {editTask && (
-        <EditTaskCard
-          id={data.id}
-          title={titleSplit[0]}
-          desc={titleSplit[1]}
-          tags={data.tags}
-          handleClose={handleEditClose}
-        />
-      )}
+      <Suspense fallback="">
+        {editTask && (
+          <EditTaskCard
+            id={data.id}
+            title={titleSplit[0]}
+            desc={titleSplit[1]}
+            tags={data.tags}
+            handleClose={handleEditClose}
+          />
+        )}
+      </Suspense>
       <CardHeader
         title={titleSplit[0]}
         action={
