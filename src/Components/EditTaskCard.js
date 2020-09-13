@@ -171,7 +171,7 @@ const EditTaskCard = ({
     setSelectVal(newValues);
   };
   return (
-    <Dialog open maxWidth="sm" onEscapeKeyDown={handleChange}>
+    <Dialog open maxWidth="sm" onEscapeKeyDown={handleClose}>
       <form
         onSubmit={e => {
           e.preventDefault();

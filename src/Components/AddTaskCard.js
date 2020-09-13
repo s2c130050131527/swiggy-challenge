@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import TextField from "@material-ui/core/TextField";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import Grid from "@material-ui/core/Grid";
@@ -77,9 +77,11 @@ const AddTaskCard = ({ handleClose, open }) => {
     data: tagData,
     refetch: tagRefetch
   } = useQuery(GET_TAGS);
-  if (data) {
-    handleClose();
-  }
+  useEffect(() => {
+    if (!loading && data) {
+      handleClose();
+    }
+  }, [data]);
   const [selectVal, setSelectVal] = useState([]);
   const createOption = label => ({
     label,
@@ -105,7 +107,7 @@ const AddTaskCard = ({ handleClose, open }) => {
     setSelectVal(newValues);
   };
   return (
-    <Dialog open={open} maxWidth="sm" onEscapeKeyDown={handleChange}>
+    <Dialog open={open} maxWidth="sm" onEscapeKeyDown={handleClose}>
       <form
         onSubmit={e => {
           e.preventDefault();
